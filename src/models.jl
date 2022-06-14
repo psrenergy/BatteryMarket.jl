@@ -1,31 +1,58 @@
-module BatteryModels
+function base_model(list::Vector{<:Battery}, ts::TimeSeries)
+    # -*- Load Data -*
+    K  = length(list)
+    T  = length(ts)
 
-using ..BatteryData: Data
-using JuMP
+    Q  = [item.Q  for item in list]
+    q0 = [item.q0 for item in list]
+    c  = [item.c  for item in list]
+    d  = [item.d  for item in list]
+    γd = [item.γd for item in list]
+    γc = [item.γc for item in list]
 
-function battery_model(data::Data, Optimizer)
-    Q = data.Q
-    Δᶜq = data.Δᶜq
-    Δᵈq = data.Δᵈq
-    γᵈ = data.γᵈ
-    γᶜ = data.γᶜ
-    p = data.p
-    q₀ = data.q₀
+    p  = ts.p
 
-    S = data.S
-    K = data.K
-
+    # -*- Build Model -*
     model = Model(Optimizer)
 
-    @variable(model, 0 <= q[s = 1:S, k = 1:K] <= Q[k])
-    @variable(model, 0 <= δᶜq[s = 1:S, k = 1:K] <= Δᶜq[k])
-    @variable(model, 0 <= δᵈq[s = 1:S, k = 1:K] <= Δᵈq[k])
+    @variable(model, 0 <= q[t = 1:T, k = 1:K] <= Q[k])
+    @variable(model, 0 <= c[t = 1:T, k = 1:K] <= C[k])
+    @variable(model, 0 <= d[t = 1:T, k = 1:K] <= D[k])
 
-    @objective(model, Max, sum(p[s] * (γᵈ[k] * δᵈq[s, k] - δᶜq[s, k]) for s = 1:S, k = 1:K))
+    @objective(model, Max, sum(p[s] * (γd[k] * d[t, k] - c[t, k]) for t = 1:T, k = 1:K))
 
-    @constraint(model, [s = 1:S-1, k = 1:K], q[s, k] == (s == 1 ? q₀[k] : q[s-1, k]) + γᶜ[k] * δᶜq[s, k] - δᵈq[s, k])
+    @constraint(model, [t = 1:T, k = 1:K], q[t, k] == (s == 1 ? q0[k] : q[s-1, k]) + γc[k] * c[s, k] - d[s, k])
 
     model
 end
 
-end # Models module 
+function connected_model(list::Vector{<:Battery}, ts::TimeSeries)
+    # -*- Load Data -*
+    K  = length(list)
+    T  = length(ts)
+
+    Q  = [item.Q  for item in list]
+    q0 = [item.q0 for item in list]
+    c  = [item.c  for item in list]
+    d  = [item.d  for item in list]
+    γd = [item.γd for item in list]
+    γc = [item.γc for item in list]
+
+    p  = ts.p
+    E  = ts.E
+
+    # -*- Build Model -*
+    model = Model(Optimizer)
+
+    @variable(model, 0 <= q[t = 1:T, k = 1:K] <= Q[k])
+    @variable(model, 0 <= c[t = 1:T, k = 1:K] <= C[k])
+    @variable(model, 0 <= d[t = 1:T, k = 1:K] <= D[k])
+
+    @objective(model, Max, sum(p[s] * (γd[k] * d[t, k] - c[t, k]) for t = 1:T, k = 1:K))
+
+    @constraint(model, [t = 1:T, k = 1:K], q[t, k] == (s == 1 ? q0[k] : q[s-1, k]) + γc[k] * c[s, k] - d[s, k])
+    @constraint(model, [t = 1:T], sum(c[t, k] for k = 1:K) <= E[t])
+    @constraint(model, [t = 1:T], sum(d[t, k] for k = 1:K) <= (E[t] > 0.0 ? 0.0 : sum(D[k] for k = 1:K)))
+
+    model
+end

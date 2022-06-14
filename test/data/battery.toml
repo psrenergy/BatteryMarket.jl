@@ -1,0 +1,17 @@
+[[Battery]]
+code = 32
+charge_eff = 0.9
+discharge_eff = 0.98
+max_storage = 20.6
+max_charge = 2.1
+max_discharge = 1.9
+initial_charge = 0.0
+
+[[Battery]]
+code = 33
+charge_eff = 0.92
+discharge_eff = 0.96
+max_storage = 16.1
+max_charge = 3.2
+max_discharge = 2.8
+initial_charge = 0.0

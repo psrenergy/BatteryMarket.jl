@@ -1,10 +1,13 @@
 module BatteryMarket
 
 using JuMP
+using TOML
+using CSV
 
-export BatteryData, BatteryModels
+export Battery
 
-include("data.jl")
+include("battery.jl")
+include("timeseries.jl")
 include("models.jl")
 
 end # module

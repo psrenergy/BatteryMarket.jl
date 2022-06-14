@@ -1,29 +1,20 @@
 using Test
-using JuMP
-using GLPK
-using UnicodePlots
-using BatteryMarket
+using BatteryMarket: Battery, TimeSeries, base_model
 
 function main()
-    data = BatteryData.battery_data(
-        BatteryData.generate_prices(24 * 365)
-    )
+    src_path = joinpath("data", "battery.toml")
+    out_path = joinpath("data", "battery-target.toml")
 
-    model = BatteryModels.battery_model(
-        data, GLPK.Optimizer
-    )
+    list = read(src_path, Battery)
 
-    JuMP.optimize!(model)
+    write(out_path, list...)
 
-    println(JuMP.solution_summary(model))
+    src_path = joinpath("data", "timeseries.csv")
+    out_path = joinpath("data", "timeseries-target.csv")
 
-    p = data.p
-    q = JuMP.value.(model[:q])
+    ts = read(src_path, TimeSeries)
 
-    plt = lineplot(1:data.S, p, title="Price vs. Charge (Model A)")
-    plt = lineplot!(plt, 1:data.S, q[:, 1])
-
-    println(plt)
+    write(out_path, ts)
 end
 
 main() # Here we go!
