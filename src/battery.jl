@@ -53,7 +53,7 @@ end
 
 function Base.write(io::IO, list::Battery...)
     data = Dict{String, Any}("Battery" => Any[to_toml(item) for item in list])
-    println(data)
+
     TOML.print(io, data)
 end
 

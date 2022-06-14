@@ -1,8 +1,9 @@
 module BatteryMarket
 
-using JuMP
 using TOML
 using CSV
+using JuMP
+using HiGHS
 
 export Battery
 
