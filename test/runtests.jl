@@ -5,11 +5,11 @@ using UnicodePlots
 using BatteryMarket
 
 function main()
-    data = BatteryMarket.BatteryData.battery_data(
-        BatteryMarket.BatteryData.generate_prices(72)
+    data = BatteryData.battery_data(
+        BatteryData.generate_prices(24 * 365)
     )
 
-    model = BatteryMarket.BatteryModels.battery_model(
+    model = BatteryModels.battery_model(
         data, GLPK.Optimizer
     )
 
@@ -20,7 +20,7 @@ function main()
     p = data.p
     q = JuMP.value.(model[:q])
 
-    plt = lineplot(1:data.S, p, title="Price vs. Charge")
+    plt = lineplot(1:data.S, p, title="Price vs. Charge (Model A)")
     plt = lineplot!(plt, 1:data.S, q[:, 1])
 
     println(plt)
