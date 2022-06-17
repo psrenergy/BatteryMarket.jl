@@ -1,27 +1,50 @@
+ENV["JULIA_DEBUG"] = true
+
 using Test
-using BatteryMarket: Battery, TimeSeries, base_model, connected_model
+using JuMP
+using UnicodePlots
+using BatteryMarket: Battery, TimeSeries, simulate_base_model, simulate_connected_model, simulate_rolling_model
+
+const battery_path = joinpath("data", "battery.toml")
+const timeseries_path = joinpath("data", "sudeste.csv")
+
+UnicodePlots.default_size!(width=150)
+
+function load_data()
+    list = read(battery_path, Battery)
+    ts = read(timeseries_path, TimeSeries)
+
+    return (list, ts)
+end
+
+function plot(ts, q; title = "Model")
+    p = ts.p
+    n = length(p)
+    t = collect(1:n)
+
+    plt = lineplot(t, p[:]; name="price", title=title)
+
+    plts = lineplot(t, zeros(Float64, n))
+
+    for k = 1:size(q, 2)
+        plts = lineplot!(plts, t, q[:, k]; name="charge $k")
+    end
+
+    println(plt)
+    println(plts)
+
+end
 
 function main()
-    src_path = joinpath("data", "battery.toml")
-    out_path = joinpath("data", "battery-target.toml")
+    list, ts = load_data()
 
-    list = read(src_path, Battery)
+    N = 24 * 365
 
-    write(out_path, list...)
+    @assert N == length(ts)
 
-    src_path = joinpath("data", "timeseries.csv")
-    out_path = joinpath("data", "timeseries-target.csv")
+    q = simulate_rolling_model(365, 24, 24, list, ts; model_kind = :base)
 
-    ts = read(src_path, TimeSeries)
-
-    write(out_path, ts)
-
-    bmodel = base_model(list, ts)
-    cmodel = connected_model(list, ts)
-
-    println(bmodel)
-
-    println(cmodel)
+    plot(ts, q)
 end
 
 main() # Here we go!
