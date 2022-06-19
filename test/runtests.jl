@@ -2,49 +2,41 @@ ENV["JULIA_DEBUG"] = true
 
 using Test
 using JuMP
-using UnicodePlots
-using BatteryMarket: Battery, TimeSeries, simulate_base_model, simulate_connected_model, simulate_rolling_model
+using Plots; gr()
+using BatteryMarket: Battery, TimeSeries, simulate_model, BaseModel, ConnectedModel, RollingModel
 
-const battery_path = joinpath("data", "battery.toml")
+const battery_path    = joinpath("data", "battery.toml")
 const timeseries_path = joinpath("data", "sudeste.csv")
 
-UnicodePlots.default_size!(width=150)
-
-function load_data()
-    list = read(battery_path, Battery)
-    ts = read(timeseries_path, TimeSeries)
-
-    return (list, ts)
-end
-
-function plot(ts, q; title = "Model")
+function makeplot(ts::TimeSeries, q::AbstractArray)
     p = ts.p
     n = length(p)
     t = collect(1:n)
 
-    plt = lineplot(t, p[:]; name="price", title=title)
+    plt = plot(title="Battery Market: Rolling Window Model")
 
-    plts = lineplot(t, zeros(Float64, n))
+    plot!(plt, t, p[:]; legend=:topleft)
+
+    pltx = twinx()
 
     for k = 1:size(q, 2)
-        plts = lineplot!(plts, t, q[:, k]; name="charge $k")
+        plot!(pltx, t, q[:, k]; xticks=:none, legend=:topright)
     end
 
-    println(plt)
-    println(plts)
-
+    savefig(plt, "plot.png")
 end
 
 function main()
-    list, ts = load_data()
+    bs = read(battery_path, Battery)
+    ts = read(timeseries_path, TimeSeries)
 
     N = 24 * 365
 
     @assert N == length(ts)
 
-    q = simulate_rolling_model(365, 24, 24, list, ts; model_kind = :base)
+    q = simulate_model(BaseModel(), bs, ts; model_kind = :base)
 
-    plot(ts, q)
+    makeplot(ts, q)
 end
 
 main() # Here we go!

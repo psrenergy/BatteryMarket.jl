@@ -1,19 +1,22 @@
+struct ConnectedModel <: BatteryModel end
+
 function build_connected_model(
-        list::Vector{<:Battery},
+        ::ConnectedModel,
+        bs::Vector{<:Battery},
         ts::TimeSeries;
         Optimizer=HiGHS.Optimizer,
         silent::Bool=true
     )
     # -*- Load Data -*
-    K = length(list)
+    K = length(bs)
     T = length(ts)
 
-    Q = [item.Q for item in list]
-    q0 = [item.q for item in list]
-    C = [item.C for item in list]
-    D = [item.D for item in list]
-    γd = [item.γd for item in list]
-    γc = [item.γc for item in list]
+    Q  = [item.Q  for item in bs]
+    q0 = [item.q  for item in bs]
+    C  = [item.C  for item in bs]
+    D  = [item.D  for item in bs]
+    γd = [item.γd for item in bs]
+    γc = [item.γc for item in bs]
 
     p = ts.p
     E = ts.E
@@ -37,13 +40,20 @@ function build_connected_model(
 end
 
 function simulate_connected_model(
-        list::Vector{<:Battery},
+        ::ConnectedModel,
+        bs::Vector{<:Battery},
         ts::TimeSeries;
         Optimizer=HiGHS.Optimizer,
         silent::Bool=true
     )
 
-    model = build_connected_model(list, ts; Optimizer=Optimizer, silent=silent)
+    model = build_model(
+        ConnectedModel(),
+        bs,
+        ts;
+        Optimizer=Optimizer,
+        silent=silent
+    )
 
     JuMP.optimize!(model)
 

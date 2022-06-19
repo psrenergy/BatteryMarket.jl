@@ -1,22 +1,17 @@
 struct TimeSeries{F <: Real}
-    p::Vector{F}                 # Price
-    E::Union{Vector{F}, Nothing} # Available Energy
+    A::Array{F, 2}
 
     function TimeSeries{F}(A::AbstractArray{<:Any, 2}) where {F <: Real}
-        if size(A, 2) == 1
-            TimeSeries{F}(A[:, 1])
-        else
-            TimeSeries{F}(A[:, 1], A[:, 2])
-        end
+        new{F}(A)
     end
 
     function TimeSeries{F}(p::AbstractVector, E::AbstractVector) where {F <: Real}
         @assert length(p) == length(E)
-        new{F}(convert.(F, p), convert.(F, E))
+        new{F}([p;;E])
     end
 
     function TimeSeries{F}(p::AbstractVector) where {F <: Real}
-        new{F}(convert.(F, p), nothing)
+        new{F}(p)
     end
 
     function TimeSeries(A::AbstractArray{<:Any, 2})
@@ -32,6 +27,14 @@ struct TimeSeries{F <: Real}
     end
 end
 
+function price(ts::TimeSeries)
+    ts[:, 1]
+end
+
+function energy(ts::TimeSeries)
+    ts[:, 2]
+end
+
 function Base.length(ts::TimeSeries)
     length(ts.p)
 end
@@ -43,7 +46,13 @@ function Base.write(path::AbstractString, ts::TimeSeries)
 end
 
 function Base.write(io::IO, ts::TimeSeries)
-    CSV.write(io, CSV.Tables.table([ts.p;;ts.E]; header=["p", "E"]))
+    if size(ts.A, 2) == 2     # price only
+        CSV.write(io, CSV.Tables.table(ts.A; header=["p", "q"]))
+    elseif size(ts.A, 2) == 3 # price and energy
+        CSV.write(io, CSV.Tables.table(ts.A; header=["p", "E", "q"]))
+    else
+        error("Inconsistent data")
+    end
 end
 
 function Base.read(path::AbstractString, TS::Type{<:TimeSeries})
@@ -56,26 +65,33 @@ function Base.read(io::IO, TS::Type{<:TimeSeries})
     TS(CSV.File(io) |> CSV.Tables.matrix)
 end
 
-function window(wi::Integer, ws::Integer, bs::Integer = ws)
-    return (
-        ws * (wi - 1) + 1,
-        ws * wi,
-        ws * (wi - 1) + 1,
-        ws * (wi - 1) + bs,
-    )
+
+# -*- Window -*- #
+abstract type Window end
+
+struct SliceWindow <: Window
+    size::Int
+
+    function SliceWindow(size::Integer)
+        new(size)
+    end
 end
 
-function window(ts::TimeSeries{F}, wi::Integer, ws::Integer, bs::Integer = ws) where {F <: Real}
-    i, j, k, l = window(wi, ws, bs)
+function window(ts::TimeSeries{F}, w::SliceWindow, i::Integer) where {F <: Real}
+    ts.A[(w.size * (i - 1)):(w.size * i), :]
+end
 
-    if isnothing(ts.E)
-        TimeSeries{F}(
-            [ts.p[i:j];ts.p[k:l]],
-        )
-    else
-        TimeSeries{F}(
-            [ts.p[i:j];ts.p[k:l]],
-            [ts.E[i:j];ts.E[k:l]],
-        )
+# -*- Forecast -*- #
+abstract type Forecast end
+
+struct MirrorForecast <: Forecast
+    size::Int
+
+    function MirrorForecast(size::Integer)
+        new(size)
     end
+end
+
+function forecast(ts::TimeSeries, f::Forecast, i::Integer)
+
 end
