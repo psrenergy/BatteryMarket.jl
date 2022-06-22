@@ -1,0 +1,7 @@
+[Model]
+model_type = "base"
+    
+[Window]
+num_windows   = 365
+window_size   = 24  # hours
+forecast_size = 24  # hours

@@ -1,42 +1,34 @@
 struct TimeSeries{F <: Real}
     A::Array{F, 2}
-
-    function TimeSeries{F}(A::AbstractArray{<:Any, 2}) where {F <: Real}
-        new{F}(A)
+    h::Vector{Symbol}
+    k::Dict{Symbol, Int}
+    
+    function TimeSeries{F}(A::AbstractArray{<:Any, 2}, h::Symbol...) where {F <: Real}
+        TimeSeries{F}(A, collect(h))
     end
 
-    function TimeSeries{F}(p::AbstractVector, E::AbstractVector) where {F <: Real}
-        @assert length(p) == length(E)
-        new{F}([p;;E])
+    function TimeSeries{F}(A::AbstractArray{<:Any, 2}, h::Vector{Symbol}) where {F <: Real}
+        @assert length(h) == size(A, 2)
+        k = Dict{Symbol, Int}(x => i for (i, x) in enumerate(h))
+        new{F}(A, h, k)
     end
 
-    function TimeSeries{F}(p::AbstractVector) where {F <: Real}
-        new{F}(p)
-    end
-
-    function TimeSeries(A::AbstractArray{<:Any, 2})
-        TimeSeries{Float64}(A)
-    end
-
-    function TimeSeries(p::AbstractVector, E::AbstractVector)
-        TimeSeries{Float64}(p, E)
-    end
-
-    function TimeSeries(p::AbstractVector)
-        TimeSeries{Float64}(p)
+    function TimeSeries(args...)
+        TimeSeries{Float64}(args...)
     end
 end
 
-function price(ts::TimeSeries)
-    ts[:, 1]
+function Base.show(io::IO, ts::TimeSeries)
+    println(io, join(ts.h, "\t"))
+    for i = 1:length(ts)
+        println(io, join(round.(ts.A[i, :]; digits=2), "\t"))
+    end
 end
 
-function energy(ts::TimeSeries)
-    ts[:, 2]
-end
+Base.length(ts::TimeSeries) = size(ts.A, 1)
 
-function Base.length(ts::TimeSeries)
-    length(ts.p)
+function Base.getindex(ts::TimeSeries, k::Symbol)
+    @view ts.A[:, ts.k[k]]
 end
 
 function Base.write(path::AbstractString, ts::TimeSeries)
@@ -46,13 +38,7 @@ function Base.write(path::AbstractString, ts::TimeSeries)
 end
 
 function Base.write(io::IO, ts::TimeSeries)
-    if size(ts.A, 2) == 2     # price only
-        CSV.write(io, CSV.Tables.table(ts.A; header=["p", "q"]))
-    elseif size(ts.A, 2) == 3 # price and energy
-        CSV.write(io, CSV.Tables.table(ts.A; header=["p", "E", "q"]))
-    else
-        error("Inconsistent data")
-    end
+    CSV.write(io, CSV.Tables.table(ts.A; header=ts.h))
 end
 
 function Base.read(path::AbstractString, TS::Type{<:TimeSeries})
@@ -62,9 +48,8 @@ function Base.read(path::AbstractString, TS::Type{<:TimeSeries})
 end
 
 function Base.read(io::IO, TS::Type{<:TimeSeries})
-    TS(CSV.File(io) |> CSV.Tables.matrix)
+    CSV.File(io) |> (fp -> TS(CSV.Tables.matrix(fp), CSV.getnames(fp)))
 end
-
 
 # -*- Window -*- #
 abstract type Window end
@@ -77,9 +62,11 @@ struct SliceWindow <: Window
     end
 end
 
-function window(ts::TimeSeries{F}, w::SliceWindow, i::Integer) where {F <: Real}
-    ts.A[(w.size * (i - 1)):(w.size * i), :]
+function (w::SliceWindow)(ts::TimeSeries, i::Integer)
+    TS(ts.A[(w.size * (i - 1)):(w.size * i), :], ts.h)
 end
+
+Base.length(w::SliceWindow) = w.size
 
 # -*- Forecast -*- #
 abstract type Forecast end
@@ -92,6 +79,11 @@ struct MirrorForecast <: Forecast
     end
 end
 
-function forecast(ts::TimeSeries, f::Forecast, i::Integer)
+function (f::MirrorForecast)(ts::TimeSeries, i::Integer)
+    TS(ts.A[(f.size * (i - 1)):(f.size * i), :], ts.h)
+end
 
+function ⊕(t::TimeSeries{F}, s::TimeSeries{F}) where {F <: Real}
+    @assert t.h == s.h
+    TimeSeries{F}([t.A;s.A], t.h)
 end

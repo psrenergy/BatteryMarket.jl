@@ -46,58 +46,6 @@ function to_toml(item::Battery)
     )
 end
 
-function Base.write(path::AbstractString, list::Battery...)
-    return open(path, "w") do io
-        write(io, list...)
-    end
-end
-
-function Base.write(io::IO, list::Battery...)
-    data = Dict{String, Any}("Battery" => Any[to_toml(item) for item in list])
-
-    TOML.print(io, data)
-end
-
-function Base.read(path::AbstractString, B::Type{<:Battery})
-    return open(path, "r") do io
-        read(io, B)
-    end
-end
-
-function Base.read(io::IO, B::Type{<:Battery})
-    data = TOML.parse(read(io, String))
-
-    if !haskey(data, "Battery") || !(data["Battery"] isa Vector)
-        error("Bad format: No '[[Battery]]' block")
-    end
-
-    list = B[]
-
-    for item in data["Battery"]
-        if !(item isa Dict)
-            error("Bad format: No key-value pairs")
-        end
-
-        for key in BATTERY_TOML_KEYS
-            if !haskey(item, key)
-                error("Bad format: Missing key '$key'")
-            end
-        end
-
-        push!(list, B(
-            item["code"],
-            item["max_storage"],
-            item["initial_charge"],
-            item["max_charge"],
-            item["max_discharge"],
-            item["charge_eff"],
-            item["discharge_eff"],
-        ))
-    end
-
-    list
-end
-
 function charge!(item::Battery{F}, q::Real) where {F <: Real}
     item.q = clamp(convert(F, q), zero(F), item.Q)
 end

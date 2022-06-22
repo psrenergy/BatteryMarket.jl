@@ -1,25 +1,30 @@
-struct ConnectedModel <: BatteryModel end
+struct ConnectedModel{F} <: BatteryModel{F}
+    bs::Vector{Battery{F}}
+    ts::TimeSeries{F}
 
-function build_connected_model(
-        ::ConnectedModel,
-        bs::Vector{<:Battery},
-        ts::TimeSeries;
+    function ConnectedModel{F}(bs::Vector{Battery{F}}, ts::TimeSeries{F}) where F
+        new{F}(bs, ts)
+    end
+end
+
+function build_model(
+        bm::ConnectedModel;
         Optimizer=HiGHS.Optimizer,
-        silent::Bool=true
+        silent::Bool=true,
     )
     # -*- Load Data -*
-    K = length(bs)
-    T = length(ts)
+    K = length(bm.bs)
+    T = length(bm.ts)
 
-    Q  = [item.Q  for item in bs]
-    q0 = [item.q  for item in bs]
-    C  = [item.C  for item in bs]
-    D  = [item.D  for item in bs]
-    γd = [item.γd for item in bs]
-    γc = [item.γc for item in bs]
+    Q  = [item.Q  for item in bm.bs]
+    q0 = [item.q  for item in bm.bs]
+    C  = [item.C  for item in bm.bs]
+    D  = [item.D  for item in bm.bs]
+    γd = [item.γd for item in bm.bs]
+    γc = [item.γc for item in bm.bs]
 
-    p = ts.p
-    E = ts.E
+    p = bm.ts[:p]
+    E = bm.ts[:E]
 
     # -*- Build Model -*
     model = Model(Optimizer)
@@ -39,23 +44,20 @@ function build_connected_model(
     model
 end
 
-function simulate_connected_model(
-        ::ConnectedModel,
-        bs::Vector{<:Battery},
-        ts::TimeSeries;
-        Optimizer=HiGHS.Optimizer,
-        silent::Bool=true
-    )
+function simulate_model(
+        bm::ConnectedModel{F};
+        Optimizer = HiGHS.Optimizer,
+        silent::Bool = true,
+    ) where F
 
-    model = build_model(
-        ConnectedModel(),
-        bs,
-        ts;
-        Optimizer=Optimizer,
-        silent=silent
-    )
+    model = build_model(bm; Optimizer=Optimizer, silent=silent)
 
     JuMP.optimize!(model)
 
-    JuMP.value.(model[:q])
+    q = JuMP.value.(model[:q])
+
+    TimeSeries{F}(
+        [bm.ts.A;;q],
+        [bm.ts.h;Symbol.([b.code for b in bm.bs])],
+    )
 end
