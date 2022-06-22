@@ -17,7 +17,7 @@ The basic file structure to use this project is as follows:
     |__ data.csv
 ```
 
-`.toml` files can be discarded by writing an underscore `_` before the file name as in `"_battery.toml"` and `"_model.toml"`.
+`.toml` files can be ignored by writing an underscore `_` before the file name as in `"_battery.toml"` and `"_model.toml"`.
 
 ```julia
 julia> using BatteryModel
