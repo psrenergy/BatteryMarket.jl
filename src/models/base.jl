@@ -1,21 +1,29 @@
-function build_base_model(
-        list::Vector{<:Battery},
-        ts::TimeSeries;
-        Optimizer=HiGHS.Optimizer,
+struct BaseModel{F} <: BatteryModel{F}
+    bs::Vector{Battery{F}}
+    ts::TimeSeries{F}
+
+    function BaseModel{F}(bs::Vector{Battery{F}}, ts::TimeSeries{F}) where F
+        new{F}(bs, ts)
+    end
+end
+
+function build_model(
+        bm::BaseModel;
+        Optimizer = HiGHS.Optimizer,
         silent::Bool = true,
     )
     # -*- Load Data -*
-    K  = length(list)
-    T  = length(ts)
+    K  = length(bm.bs)
+    T  = length(bm.ts)
 
-    Q  = [item.Q  for item in list]
-    q0 = [item.q  for item in list]
-    C  = [item.C  for item in list]
-    D  = [item.D  for item in list]
-    γd = [item.γd for item in list]
-    γc = [item.γc for item in list]
+    Q  = [item.Q  for item in bm.bs]
+    q0 = [item.q  for item in bm.bs]
+    C  = [item.C  for item in bm.bs]
+    D  = [item.D  for item in bm.bs]
+    γd = [item.γd for item in bm.bs]
+    γc = [item.γc for item in bm.bs]
 
-    p  = ts.p
+    p  = bm.ts[:p]
 
     # -*- Build Model -*
     model = Model(Optimizer)
@@ -33,16 +41,20 @@ function build_base_model(
     model
 end
 
-function simulate_base_model(
-        list::Vector{<:Battery},
-        ts::TimeSeries;
-        Optimizer=HiGHS.Optimizer,
+function simulate_model(
+        bm::BaseModel{F};
+        Optimizer = HiGHS.Optimizer,
         silent::Bool = true,
-    )
+    ) where F
 
-    model = build_base_model(list, ts; Optimizer=Optimizer, silent=silent)
+    model = build_model(bm; Optimizer=Optimizer, silent=silent)
 
     JuMP.optimize!(model)
 
-    JuMP.value.(model[:q])
+    q = JuMP.value.(model[:q])
+
+    TimeSeries{F}(
+        [bm.ts.A;;q],
+        [bm.ts.h;Symbol.([b.code for b in bm.bs])]
+    )
 end

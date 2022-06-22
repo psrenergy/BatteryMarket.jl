@@ -1,31 +1,41 @@
-function simulate_rolling_model(
-        wn::Integer, # Window Number
-        ws::Integer, # Window Size
-        bs::Integer, # Buffer Size
-        list::Vector{Battery},
-        ts::TimeSeries{F};
+struct RollingWindowModel{F, BM <: BatteryModel} <: BatteryModel{F}
+    bs::Vector{Battery{F}}
+    ts::TimeSeries{F}
+    w::Window
+    f::Forecast
+    n::Int
+
+    function RollingWindowModel{F, BM}(
+            bs::Vector{Battery{F}},
+            ts::TimeSeries{F},
+            w::Window,
+            f::Forecast,
+            n::Integer,
+        ) where {F, BM}
+
+        new{F, BM}(bs, ts, w, f, n)
+    end
+end
+
+function simulate_model(
+        rw::RollingWindowModel{F, BM};
         Optimizer=HiGHS.Optimizer,
-        model_kind::Symbol = :base,
         silent::Bool = true,
-    ) where {F <: Real}
+    ) where {F, BM}
 
-    q = Array{F, 2}(undef, length(ts), length(list))
+    q = Array{F, 2}[]
 
-    for wi = 1:wn
-        qi = if model_kind === :base
-            simulate_base_model(list, window(ts, wi, ws, bs); Optimizer=Optimizer, silent=silent)
-        elseif model_kind === :connected
-            simulate_connected_model(list, window(ts, wi, ws, bs); Optimizer=Optimizer, silent=silent)
-        else
-            error("Unknown model '$model'")
-        end
+    for i = 1:rw.n
+        ws = length(rw.w)
+        ts = rw.w(ts, i) ⊕ rw.f(ts, i)
+        bm = BM(bs, ts)
+        qi = simulate_model(bm; Optimizer=Optimizer, silent=silent)
 
         # Update battery charges
-        charge!.(list, qi[ws, :])
-        
-        j, k, _ = window(wi, ws)
-        q[j:k, :] .= qi[1:ws, :]
+        charge!.(bs, qi[ws, :])
+
+        push!(q, qi)
     end
 
-    q
+    vcat(q...)
 end
