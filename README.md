@@ -18,12 +18,17 @@ The basic file structure to use this project is as follows:
 ```
 
 `.toml` files can be ignored by writing an underscore `_` before the file name as in `"_battery.toml"` and `"_model.toml"`.
-
+To run a simulation based on `data.csv` and the configuration files one must do:
 ```julia
-julia> using BatteryMarket
+julia> import BatteryMarket
 
-julia> BatteryMarket.simulate(basepath="folder")
+julia> BatteryMarket.simulate(basepath="path/to/folder")
 ```
+or via the command-line interface:
+```bash
+$ julia -e 'import BatteryMarket; BatteryMarket.simulate(basepath="path/to/folder")'
+```
+if `basepath` is not provided, defaults to the current directory (`pwd()`).
 
 this will produce the `"results.csv"` file:
 ```
