@@ -20,9 +20,9 @@ The basic file structure to use this project is as follows:
 `.toml` files can be ignored by writing an underscore `_` before the file name as in `"_battery.toml"` and `"_model.toml"`.
 
 ```julia
-julia> using BatteryModel
+julia> using BatteryMarket
 
-julia> BatteryModel.simulate(basepath="folder")
+julia> BatteryMarket.simulate(basepath="folder")
 ```
 
 this will produce the `"results.csv"` file:
@@ -31,7 +31,7 @@ this will produce the `"results.csv"` file:
     |__ battery.toml
     |__ model.toml
     |__ data.csv
-    |-- results.csv
+    |__ results.csv
 ```
 
 ### `model.toml`
