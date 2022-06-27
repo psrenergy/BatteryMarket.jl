@@ -4,10 +4,7 @@ using JuMP
 using BatteryMarket
 
 function main()
-    BatteryMarket.simulate(;
-        basepath=joinpath(@__DIR__, "data"),
-        infile="sudeste.csv",
-    )
+    BatteryMarket.simulate(; basepath=joinpath(@__DIR__, "data"))
 end
 
 main() # Here we go!
