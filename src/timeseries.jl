@@ -62,8 +62,8 @@ struct SliceWindow <: Window
     end
 end
 
-function (w::SliceWindow)(ts::TimeSeries, i::Integer)
-    TS(ts.A[(w.size * (i - 1)):(w.size * i), :], ts.h)
+function (w::SliceWindow)(ts::TimeSeries{F}, i::Integer) where F
+    TimeSeries{F}(ts.A[(w.size * (i - 1) + 1):(w.size * i), :], ts.h)
 end
 
 Base.length(w::SliceWindow) = w.size
@@ -79,8 +79,8 @@ struct MirrorForecast <: Forecast
     end
 end
 
-function (f::MirrorForecast)(ts::TimeSeries, i::Integer)
-    TS(ts.A[(f.size * (i - 1)):(f.size * i), :], ts.h)
+function (f::MirrorForecast)(ts::TimeSeries{F}, i::Integer) where F
+    TimeSeries{F}(ts.A[(f.size * (i - 1) + 1):(f.size * i), :], ts.h)
 end
 
 function ⊕(t::TimeSeries{F}, s::TimeSeries{F}) where {F <: Real}

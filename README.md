@@ -44,13 +44,13 @@ this will produce the `"results.csv"` file:
 [Model]
 model_type = "base"
     
-[Window]
+[Model.Window]
 num_windows   = 365
 window_size   = 24  # hours
 forecast_size = 24  # hours
 ```
 
-The `model_type` key must be either the `"base"` or `"connected"`. The `[Window]` block introduces the Rolling Window Model, where `num_windows`, `window_size` and `forecast_size` must be set.
+The `model_type` key must be either the `"base"` or `"connected"`. The `[Model.Window]` block introduces the Rolling Window Model, where `num_windows`, `window_size` and `forecast_size` must be set.
 
 ### `battery.toml`
 ```toml

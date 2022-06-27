@@ -23,19 +23,20 @@ function simulate_model(
         silent::Bool = true,
     ) where {F, BM}
 
-    q = Array{F, 2}[]
+    t = TimeSeries{F}[]
 
     for i = 1:rw.n
         ws = length(rw.w)
-        ts = rw.w(ts, i) ⊕ rw.f(ts, i)
-        bm = BM(bs, ts)
-        qi = simulate_model(bm; Optimizer=Optimizer, silent=silent)
+        ts = rw.w(rw.ts, i) ⊕ rw.f(rw.ts, i)
+        bm = BM(rw.bs, ts)
+        ti = simulate_model(bm; Optimizer=Optimizer, silent=silent)
+        qi = [ti[Symbol(b.code)][ws] for b in rw.bs]
 
         # Update battery charges
-        charge!.(bs, qi[ws, :])
+        charge!.(rw.bs, qi)
 
-        push!(q, qi)
+        push!(t, ti)
     end
 
-    vcat(q...)
+    reduce(⊕, t)
 end

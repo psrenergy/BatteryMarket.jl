@@ -17,10 +17,7 @@ function read_model(;
     end
 
     md = Dict{String, Any}(
-        "model_type"     => "base",
-        "window_type"    => "slice",
-        "forecast_type"  => "mirror",
-        "forecast_size"  => 0,
+        "model_type" => "base",
     )
     bs = Battery{Float64}[]
 
@@ -103,13 +100,21 @@ function read_model(;
     end
 
     if haskey(md, "Window") # rolling window model
-        wd = md["Window"]
-        if !(wd isa Dict)
+        if !(md["Window"] isa Dict)
             error("Format Error: window must be a dictionary i.e. a [Window] block")
         end
 
+        @show wd = merge(
+            Dict{String, Any}(
+                "window_type"    => "slice",
+                "forecast_type"  => "mirror",
+                "forecast_size"  => 0,
+            ),
+            md["Window"],
+        )
+
         if !haskey(wd, "num_windows") || !(wd["num_windows"] isa Integer)
-            error("Format Error: Missing integer value for key 'window_size'")
+            error("Format Error: Missing integer value for key 'num_windows'")
         end
 
         @assert (n = wd["num_windows"]::Integer) > 0
@@ -121,11 +126,11 @@ function read_model(;
         # - window
         @assert (ws = wd["window_size"]::Integer) > 0
 
-        if !haskey(wd, "window_type") || !(wd["window_size"] isa String)
+        if !haskey(wd, "window_type") || !(wd["window_type"] isa String)
             error("Format Error: Missing string value for key 'window_type'")
         end
 
-        @assert (wt = wd["window_type"]::String) > 0
+        wt = wd["window_type"]::String
 
         w = if wt == "slice"
             SliceWindow(ws)
@@ -139,8 +144,8 @@ function read_model(;
 
         fs = wd["forecast_size"]::Integer
 
-        if !haskey(wd, "window_type") || !(wd["window_size"] isa String)
-            error("Format Error: Missing string value for key 'window_type'")
+        if !haskey(wd, "forecast_type") || !(wd["forecast_type"] isa String)
+            error("Format Error: Missing string value for key 'forecast_type'")
         end
 
         ft = wd["forecast_type"]::String
@@ -151,7 +156,7 @@ function read_model(;
             error("Format Error: Invalid forecast type '$wt'. Options are: 'slice'")
         end
 
-        RollingModel{Float64, MT}(bs, ts, w, f, n)
+        RollingWindowModel{Float64, MT}(bs, ts, w, f, n)
     else
         MT(bs, ts)
     end
