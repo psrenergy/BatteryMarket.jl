@@ -104,7 +104,7 @@ function read_model(;
             error("Format Error: window must be a dictionary i.e. a [Window] block")
         end
 
-        @show wd = merge(
+        wd = merge(
             Dict{String, Any}(
                 "window_type"    => "slice",
                 "forecast_type"  => "mirror",

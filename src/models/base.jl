@@ -58,8 +58,8 @@ function simulate_model(
     d = JuMP.value.(model[:d])
     K = length(bm.bs)
     T = length(bm.ts)
-    Δq = F[(γd[k] * d[t, k] - c[t, k]) for t = 1:T, k = 1:K]
-    op = F[p[t] * Δq[t, k] for t = 1:T, k = 1:K]
+    Δq = F[(c[t, k] - γd[k] * d[t, k]) for t = 1:T, k = 1:K]
+    op = F[-p[t] * Δq[t, k] for t = 1:T, k = 1:K]
 
     TimeSeries{F}(
         [
