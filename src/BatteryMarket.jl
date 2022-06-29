@@ -7,8 +7,6 @@ using Glob
 using JuMP
 using HiGHS
 
-function simulate_model end
-
 # -*- Data & IO -*-
 include("battery.jl")
 include("timeseries.jl")
@@ -35,12 +33,11 @@ function simulate(
         write(io, ts)
     end
 
-    p = ts[:p]
-    q = hcat((ts[Symbol(b.code)] for b in bm.bs)...)
+    s = hcat((ts[Symbol("operation_$(b.code)")] for b in bm.bs)...)
 
     open(joinpath(basepath, replace(outfile, ".csv" => ".json")), "w") do io
         JSON.print(io, Dict{String, Any}(
-            "profit" => sum(p[i-1] * -sum(q[i, :] .- q[i-1, :]) for i = 2:length(ts))
+            "profit" => sum(s)
         ))
     end
 end

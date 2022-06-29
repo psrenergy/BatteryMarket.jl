@@ -42,7 +42,7 @@ function build_model(
 end
 
 function simulate_model(
-        bm::BaseModel{F};
+        bm::BatteryModel{F};
         Optimizer = HiGHS.Optimizer,
         silent::Bool = true,
     ) where F
@@ -51,10 +51,28 @@ function simulate_model(
 
     JuMP.optimize!(model)
 
+    p = bm.ts[:p]
+    γd = [item.γd for item in bm.bs]
     q = JuMP.value.(model[:q])
+    c = JuMP.value.(model[:c])
+    d = JuMP.value.(model[:d])
+    K = length(bm.bs)
+    T = length(bm.ts)
+    Δq = F[(γd[k] * d[t, k] - c[t, k]) for t = 1:T, k = 1:K]
+    op = F[p[t] * Δq[t, k] for t = 1:T, k = 1:K]
 
     TimeSeries{F}(
-        [bm.ts.A;;q],
-        [bm.ts.h;Symbol.([b.code for b in bm.bs])]
+        [
+            bm.ts.A;;
+            q;;
+            Δq;;
+            op
+        ],
+        [
+            bm.ts.h;
+            Symbol.(["charge_$(b.code)" for b in bm.bs]);
+            Symbol.(["charge_delta_$(b.code)" for b in bm.bs]);
+            Symbol.(["operation_$(b.code)" for b in bm.bs])
+        ]
     )
 end

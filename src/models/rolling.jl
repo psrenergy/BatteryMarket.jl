@@ -30,12 +30,15 @@ function simulate_model(
         ts = rw.w(rw.ts, i) ⊕ rw.f(rw.ts, i)
         bm = BM(rw.bs, ts)
         ti = simulate_model(bm; Optimizer=Optimizer, silent=silent)
-        qi = [ti[Symbol(b.code)][ws] for b in rw.bs]
+        qi = [ti[Symbol("charge_$(b.code)")][ws] for b in rw.bs]
 
         # Update battery charges
         charge!.(rw.bs, qi)
 
-        push!(t, ti)
+        push!(
+            t,
+            TimeSeries{F}(ti.A[1:ws, :], ti.h)
+        )
     end
 
     reduce(⊕, t)

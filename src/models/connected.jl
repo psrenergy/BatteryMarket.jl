@@ -43,21 +43,3 @@ function build_model(
 
     model
 end
-
-function simulate_model(
-        bm::ConnectedModel{F};
-        Optimizer = HiGHS.Optimizer,
-        silent::Bool = true,
-    ) where F
-
-    model = build_model(bm; Optimizer=Optimizer, silent=silent)
-
-    JuMP.optimize!(model)
-
-    q = JuMP.value.(model[:q])
-
-    TimeSeries{F}(
-        [bm.ts.A;;q],
-        [bm.ts.h;Symbol.([b.code for b in bm.bs])],
-    )
-end
