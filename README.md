@@ -1,7 +1,5 @@
 # BatteryMarket.jl
 
-🔋 LP-powered battery operator
-
 <div align="center">
     <img src="./test/plot.png" alt="Plot">
 </div>
