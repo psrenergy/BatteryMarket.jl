@@ -7,8 +7,18 @@
 ## Getting Started
 
 ### Install
+The first step is to install julia. 
+
+You can try to install via juliaup by running
+```
+winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore
+```
+or downloading directly from the Julia website https://julialang.org/downloads/
+
+With julia installed you need to install this package
+
 ```julia
-pkg> add https://github.com/psrenergy/BatteryMarket.jl
+julia> import Pkg; Pkg.add(url="https://github.com/psrenergy/BatteryMarket.jl")
 ```
 
 ### Using
@@ -54,6 +64,19 @@ forecast_size = 24  # hours
 ```
 
 The `model_type` key must be either the `"base"` or `"connected"`. The `[Model.Window]` block introduces the Rolling Window Model, where `num_windows`, `window_size` and `forecast_size` must be set.
+
+If you want to run the model with perfect information you must edit the `[Model.Window]` to have a 0 `forecast_size`, for example:
+```toml
+[Model]
+model_type = "base"
+    
+[Model.Window]
+num_windows   = 365
+window_size   = 24  # hours
+forecast_size = 0  # hours
+```
+
+If you completely delete the `[Model.Window]` section it will optimize allowing to charge and discharge the battery freely. This is useful to get an upper bound on how much revenue can be reached in theory.
 
 ### `battery.toml`
 ```toml
